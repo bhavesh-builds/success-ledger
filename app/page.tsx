@@ -1,4 +1,9 @@
-export default function Home() {
+import Link from 'next/link'
+import { getUser } from '@/lib/supabase/auth'
+
+export default async function Home() {
+  const user = await getUser()
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-black dark:to-zinc-950">
       {/* Navigation */}
@@ -11,12 +16,29 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <button className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                Sign In
-              </button>
-              <button className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors">
-                Get Started
-              </button>
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -37,12 +59,29 @@ export default function Home() {
               generate insights, and visualize your growth journey.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button className="px-8 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-lg font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all transform hover:scale-105 shadow-lg">
-                Start Your Ledger
-              </button>
-              <button className="px-8 py-4 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg text-lg font-semibold hover:border-zinc-400 dark:hover:border-zinc-600 transition-all">
-                Learn More
-              </button>
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  className="px-8 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-lg font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all transform hover:scale-105 shadow-lg"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/signup"
+                    className="px-8 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-lg font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all transform hover:scale-105 shadow-lg"
+                  >
+                    Start Your Ledger
+                  </Link>
+                  <Link
+                    href="/auth/login"
+                    className="px-8 py-4 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg text-lg font-semibold hover:border-zinc-400 dark:hover:border-zinc-600 transition-all"
+                  >
+                    Sign In
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -161,9 +200,21 @@ export default function Home() {
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
               Start capturing your achievements today and turn them into powerful stories for your career growth.
             </p>
-            <button className="px-8 py-4 bg-white text-blue-600 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-all transform hover:scale-105 shadow-lg">
-              Get Started Free
-            </button>
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="px-8 py-4 bg-white text-blue-600 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-all transform hover:scale-105 shadow-lg inline-block"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/auth/signup"
+                className="px-8 py-4 bg-white text-blue-600 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-all transform hover:scale-105 shadow-lg inline-block"
+              >
+                Get Started Free
+              </Link>
+            )}
           </div>
         </div>
       </main>
