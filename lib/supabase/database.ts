@@ -21,12 +21,18 @@ type LikeInsert = Database['public']['Tables']['likes']['Insert']
 /**
  * Achievement operations
  */
-export async function getAchievements(userId: string) {
+export async function getAchievements(userId?: string) {
   const supabase = await createClient()
-  const { data, error } = await supabase
+  let query = supabase
     .from('achievements')
     .select('*')
-    .eq('user_id', userId)
+  
+  // If userId is provided, filter by user, otherwise get all public achievements
+  if (userId) {
+    query = query.eq('user_id', userId)
+  }
+  
+  const { data, error } = await query
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
 
@@ -36,6 +42,57 @@ export async function getAchievements(userId: string) {
   }
 
   return { data, error: null }
+}
+
+export async function getAllPublicAchievements() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('achievements')
+    .select('*')
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(100) // Limit to prevent performance issues
+
+  if (error) {
+    console.error('Error fetching public achievements:', error)
+    return { data: null, error }
+  }
+
+  // Fetch profiles separately
+  if (data && Array.isArray(data) && data.length > 0) {
+    const achievementsData = data as Achievement[]
+    const userIds = [...new Set(achievementsData.map((achievement) => achievement.user_id))]
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .in('id', userIds)
+
+    const profilesMap = new Map(
+      (profiles || []).map((profile: any) => [profile.id, profile])
+    )
+
+    const achievementsWithProfiles = achievementsData.map((achievement) => ({
+      ...achievement,
+      profiles: profilesMap.get(achievement.user_id) || null,
+    })) as Array<Achievement & {
+      profiles: {
+        full_name: string | null
+        avatar_url: string | null
+      } | null
+    }>
+
+    return { data: achievementsWithProfiles, error: null }
+  }
+
+  return { 
+    data: [] as Array<Achievement & {
+      profiles: {
+        full_name: string | null
+        avatar_url: string | null
+      } | null
+    }>, 
+    error: null 
+  }
 }
 
 export async function getAchievementById(id: string, userId: string) {

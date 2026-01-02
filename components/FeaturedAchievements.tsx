@@ -66,24 +66,16 @@ export async function FeaturedAchievements({ userId, limit = 6 }: FeaturedAchiev
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            Featured Achievements
-          </h2>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-            Your recent accomplishments
-          </p>
-        </div>
-        {achievementsList.length > limit && (
+      {achievementsList.length > limit && (
+        <div className="flex justify-end mb-6">
           <Link
             href="/dashboard/achievements"
             className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
             View All ({achievementsList.length})
           </Link>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {featuredAchievements.map((achievement) => (

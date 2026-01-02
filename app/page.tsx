@@ -1,8 +1,14 @@
 import Link from 'next/link'
 import { getUser } from '@/lib/supabase/auth'
+import { getAllPublicAchievements } from '@/lib/supabase/database'
+import { PublicAchievements } from '@/components/PublicAchievements'
+import { Suspense } from 'react'
+import { AchievementListSkeleton } from '@/components/skeletons'
 
 export default async function Home() {
   const user = await getUser()
+  const { data: achievements } = await getAllPublicAchievements()
+  const achievementsList = Array.isArray(achievements) ? achievements : []
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-black dark:to-zinc-950">
@@ -44,51 +50,20 @@ export default async function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="pt-20 pb-16 sm:pt-32 sm:pb-24">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-zinc-900 dark:text-zinc-100 mb-6 leading-tight">
-              Your Personal
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                Achievement Platform
-              </span>
-            </h1>
-            <p className="text-xl sm:text-2xl text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed max-w-2xl mx-auto">
-              Capture raw accomplishments, convert them into structured STAR stories, 
-              generate insights, and visualize your growth journey.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              {user ? (
-                <Link
-                  href="/dashboard"
-                  className="px-8 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-lg font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all transform hover:scale-105 shadow-lg"
-                >
-                  Go to Dashboard
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    href="/auth/signup"
-                    className="px-8 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-lg font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all transform hover:scale-105 shadow-lg"
-                  >
-                    Start Your Ledger
-                  </Link>
-                  <Link
-                    href="/auth/login"
-                    className="px-8 py-4 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg text-lg font-semibold hover:border-zinc-400 dark:hover:border-zinc-600 transition-all"
-                  >
-                    Sign In
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
+      {/* Public Achievements Section - Moved to top */}
+      <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Suspense fallback={<AchievementListSkeleton count={6} />}>
+            <PublicAchievements achievements={achievementsList} />
+          </Suspense>
         </div>
+      </div>
 
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Features Grid */}
-        <div className="py-20 sm:py-32">
-          <div className="text-center mb-16">
+        <div className="py-12 sm:py-16">
+          <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
               Everything you need to track success
             </h2>
@@ -192,13 +167,15 @@ export default async function Home() {
         </div>
 
         {/* CTA Section */}
-        <div className="py-20 sm:py-32">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-12 sm:p-16 text-center">
+        <div className="py-12 sm:py-16">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 sm:p-12 text-center">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Ready to build your success ledger?
+              {user ? 'Visit Your Personalized Dashboard' : 'Ready to build your success ledger?'}
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Start capturing your achievements today and turn them into powerful stories for your career growth.
+              {user 
+                ? 'Manage your achievements, track your growth, and build your success story.'
+                : 'Start capturing your achievements today and turn them into powerful stories for your career growth.'}
             </p>
             {user ? (
               <Link
@@ -237,6 +214,7 @@ export default async function Home() {
           </div>
         </div>
       </footer>
+
     </div>
   );
 }
