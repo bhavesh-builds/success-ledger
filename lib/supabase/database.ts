@@ -229,12 +229,26 @@ export async function getComments(achievementId: string) {
     const commentsWithProfiles = commentsData.map((comment) => ({
       ...comment,
       profiles: profilesMap.get(comment.user_id) || null,
-    }))
+    })) as Array<Comment & {
+      profiles: {
+        full_name: string | null
+        avatar_url: string | null
+      } | null
+    }>
 
     return { data: commentsWithProfiles, error: null }
   }
 
-  return { data: (data as Comment[]) || [], error: null }
+  // Return empty array with correct type
+  return { 
+    data: [] as Array<Comment & {
+      profiles: {
+        full_name: string | null
+        avatar_url: string | null
+      } | null
+    }>, 
+    error: null 
+  }
 }
 
 export async function getCommentReplies(parentId: string) {
