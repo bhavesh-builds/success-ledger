@@ -1,6 +1,9 @@
 import { getAchievements } from '@/lib/supabase/database'
+import type { Database } from '@/lib/supabase/types'
 import Link from 'next/link'
 import { format } from 'date-fns'
+
+type Achievement = Database['public']['Tables']['achievements']['Row']
 
 interface FeaturedAchievementsProps {
   userId: string
@@ -9,6 +12,9 @@ interface FeaturedAchievementsProps {
 
 export async function FeaturedAchievements({ userId, limit = 6 }: FeaturedAchievementsProps) {
   const { data: achievements, error } = await getAchievements(userId)
+  
+  // Type guard to ensure achievements is an array
+  const achievementsList: Achievement[] = Array.isArray(achievements) ? achievements : []
 
   if (error) {
     return (
@@ -20,7 +26,7 @@ export async function FeaturedAchievements({ userId, limit = 6 }: FeaturedAchiev
     )
   }
 
-  const featuredAchievements = achievements?.slice(0, limit) || []
+  const featuredAchievements = achievementsList.slice(0, limit)
 
   if (featuredAchievements.length === 0) {
     return (
@@ -69,12 +75,12 @@ export async function FeaturedAchievements({ userId, limit = 6 }: FeaturedAchiev
             Your recent accomplishments
           </p>
         </div>
-        {achievements && achievements.length > limit && (
+        {achievementsList.length > limit && (
           <Link
             href="/dashboard/achievements"
             className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
-            View All ({achievements.length})
+            View All ({achievementsList.length})
           </Link>
         )}
       </div>
@@ -91,19 +97,7 @@ export async function FeaturedAchievements({ userId, limit = 6 }: FeaturedAchiev
 function AchievementCard({
   achievement,
 }: {
-  achievement: {
-    id: string
-    raw_text: string
-    star_situation: string | null
-    star_task: string | null
-    star_action: string | null
-    star_result: string | null
-    date: string
-    category: string | null
-    tags: string[]
-    is_structured: boolean
-    created_at: string
-  }
+  achievement: Achievement
 }) {
   const displayText = achievement.is_structured && achievement.star_result
     ? achievement.star_result

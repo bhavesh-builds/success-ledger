@@ -2,6 +2,9 @@ import { requireAuth } from '@/lib/supabase/auth'
 import { signOut } from '@/app/actions/auth'
 import { redirect } from 'next/navigation'
 import { FeaturedAchievements } from '@/components/FeaturedAchievements'
+import { AchievementListSkeleton } from '@/components/skeletons/AchievementListSkeleton'
+import { Suspense } from 'react'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
   const user = await requireAuth()
@@ -22,9 +25,12 @@ export default async function DashboardPage() {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              <Link
+                href="/dashboard/profile"
+                className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
                 {user.email}
-              </span>
+              </Link>
               <form action={signOut}>
                 <button
                   type="submit"
@@ -51,7 +57,17 @@ export default async function DashboardPage() {
 
         {/* Featured Achievements Section */}
         <div className="mb-12">
-          <FeaturedAchievements userId={user.id} limit={6} />
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+              Featured Achievements
+            </h2>
+            <p className="text-zinc-600 dark:text-zinc-400">
+              Your recent accomplishments
+            </p>
+          </div>
+          <Suspense fallback={<AchievementListSkeleton count={6} />}>
+            <FeaturedAchievements userId={user.id} limit={6} />
+          </Suspense>
         </div>
 
         {/* Quick Actions */}
@@ -62,41 +78,50 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
+          <Link
+            href="/dashboard/achievements"
+            className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 hover:shadow-lg transition-all"
+          >
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               Your Achievements
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 mb-4">
               View and manage all your accomplishments
             </p>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <div className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block">
               View Achievements
-            </button>
-          </div>
+            </div>
+          </Link>
 
-          <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
+          <Link
+            href="/dashboard/achievements/new"
+            className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 hover:shadow-lg transition-all"
+          >
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
               Add Achievement
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 mb-4">
               Capture a new accomplishment
             </p>
-            <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <div className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-block">
               Add New
-            </button>
-          </div>
+            </div>
+          </Link>
 
-          <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
+          <Link
+            href="/dashboard/profile"
+            className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 hover:shadow-lg transition-all"
+          >
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-              Insights
+              Profile Settings
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-              View your growth and insights
+              Manage your profile information
             </p>
-            <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-              View Insights
-            </button>
-          </div>
+            <div className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors inline-block">
+              Edit Profile
+            </div>
+          </Link>
         </div>
       </main>
     </div>
