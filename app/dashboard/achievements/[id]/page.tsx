@@ -1,4 +1,4 @@
-import { requireAuth } from '@/lib/supabase/auth'
+import { requireAuth, getUserProfile } from '@/lib/supabase/auth'
 import { getAchievementById, getComments, getLikeCount, hasUserLiked } from '@/lib/supabase/database'
 import { updateAchievementActionWithId, deleteAchievementAction } from '@/app/actions/achievements'
 import type { Database } from '@/lib/supabase/types'
@@ -9,6 +9,7 @@ import { DeleteButton } from '@/components/DeleteButton'
 import { AchievementForm } from '@/components/AchievementForm'
 import { LikeButton } from '@/components/LikeButton'
 import { CommentsSection } from '@/components/CommentsSection'
+import { AppHeader } from '@/components/AppHeader'
 
 type Achievement = Database['public']['Tables']['achievements']['Row']
 
@@ -19,6 +20,7 @@ export default async function AchievementDetailPage({
 }) {
   try {
     const user = await requireAuth()
+    const userProfile = await getUserProfile(user.id)
     const { id } = await params
     
     if (!id) {
@@ -42,23 +44,21 @@ export default async function AchievementDetailPage({
 
     return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-black dark:to-zinc-950">
-      <nav className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/dashboard" className="flex items-center">
-              <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                Success Ledger
-              </h1>
-            </Link>
-            <Link
-              href="/dashboard/achievements"
-              className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-            >
-              ← Back to Achievements
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <AppHeader 
+        user={user} 
+        userProfile={userProfile} 
+        variant="dashboard" 
+        showSignOut={true}
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b border-zinc-200 dark:border-zinc-800">
+        <Link
+          href="/dashboard/achievements"
+          className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+        >
+          ← Back to Achievements
+        </Link>
+      </div>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb */}

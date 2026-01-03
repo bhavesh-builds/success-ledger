@@ -170,3 +170,4 @@ After running this migration:
 - If you can't see comments/likes, check that RLS policies are correctly set up.
 - Test with authenticated users to ensure policies work as expected.
 
+

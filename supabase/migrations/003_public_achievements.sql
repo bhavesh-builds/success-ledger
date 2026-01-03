@@ -13,3 +13,4 @@ CREATE POLICY "Achievements are viewable by everyone"
 -- Note: Users can still only INSERT, UPDATE, and DELETE their own achievements
 -- The existing policies for INSERT, UPDATE, and DELETE remain unchanged
 
+

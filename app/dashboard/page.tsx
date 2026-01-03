@@ -1,10 +1,10 @@
-import { requireAuth } from '@/lib/supabase/auth'
-import { signOut } from '@/app/actions/auth'
+import { requireAuth, getUserProfile } from '@/lib/supabase/auth'
 import { redirect } from 'next/navigation'
 import { FeaturedAchievements } from '@/components/FeaturedAchievements'
 import { AchievementListSkeleton } from '@/components/skeletons/AchievementListSkeleton'
 import { Suspense } from 'react'
 import Link from 'next/link'
+import { AppHeader } from '@/components/AppHeader'
 
 export default async function DashboardPage() {
   const user = await requireAuth()
@@ -13,42 +13,16 @@ export default async function DashboardPage() {
     redirect('/auth/login')
   }
 
+  const userProfile = await getUserProfile(user.id)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-black dark:to-zinc-950">
-      {/* Navigation */}
-      <nav className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center">
-              <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                Success Ledger
-              </h1>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                Home
-              </Link>
-              <Link
-                href="/dashboard/profile"
-                className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                {user.email}
-              </Link>
-              <form action={signOut}>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
-                >
-                  Sign Out
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <AppHeader 
+        user={user} 
+        userProfile={userProfile} 
+        variant="dashboard" 
+        showSignOut={true}
+      />
 
       {/* Dashboard Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

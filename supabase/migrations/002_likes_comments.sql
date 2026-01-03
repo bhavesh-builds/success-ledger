@@ -164,3 +164,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- 5. Triggers for automatic timestamp updates
 -- 6. Helper functions for common queries
 
+

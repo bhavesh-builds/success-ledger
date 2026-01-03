@@ -3,6 +3,7 @@ import { updateProfileAction } from '@/app/actions/profile'
 import type { Database } from '@/lib/supabase/types'
 import Link from 'next/link'
 import { AchievementForm } from '@/components/AchievementForm'
+import { AppHeader } from '@/components/AppHeader'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 
@@ -15,23 +16,21 @@ export default async function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-black dark:to-zinc-950">
-      <nav className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/dashboard" className="flex items-center">
-              <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                Success Ledger
-              </h1>
-            </Link>
-            <Link
-              href="/dashboard"
-              className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-            >
-              ← Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <AppHeader 
+        user={user} 
+        userProfile={profile} 
+        variant="dashboard" 
+        showSignOut={true}
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b border-zinc-200 dark:border-zinc-800">
+        <Link
+          href="/dashboard"
+          className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+        >
+          ← Back to Dashboard
+        </Link>
+      </div>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">

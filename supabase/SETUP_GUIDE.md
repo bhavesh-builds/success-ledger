@@ -103,3 +103,4 @@ After setup, you can test by creating a test user:
 3. Enter an email and password
 4. Check the `profiles` table - a profile should be automatically created!
 
+
