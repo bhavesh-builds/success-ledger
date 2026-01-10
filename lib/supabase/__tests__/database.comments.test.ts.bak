@@ -1,0 +1,418 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+  getComments,
+  getCommentReplies,
+  createComment,
+  updateComment,
+  deleteComment,
+  getCommentCount,
+} from '../database'
+import {
+  createMockSupabaseClient,
+  mockComment,
+  mockProfile,
+  mockSupabaseError,
+} from './mocks/supabase'
+
+// Mock the server module
+vi.mock('../server', () => ({
+  createClient: vi.fn(),
+}))
+
+import { createClient } from '../server'
+
+describe('Comment Operations', () => {
+  let mockSupabase: ReturnType<typeof createMockSupabaseClient>
+
+  beforeEach(() => {
+    mockSupabase = createMockSupabaseClient()
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any)
+  })
+
+  describe('getComments', () => {
+    it('should fetch top-level comments with N+1 profile query', async () => {
+      const comment1 = mockComment({ user_id: 'user-1' })
+      const comment2 = mockComment({ id: 'comment-2', user_id: 'user-2' })
+      const profile1 = mockProfile({ id: 'user-1' })
+      const profile2 = mockProfile({ id: 'user-2', full_name: 'User Two' })
+
+      // First query: top-level comments (parent_id IS NULL)
+      mockSupabase.from().mockResolvedValueOnce({
+        data: [comment1, comment2],
+        error: null,
+      })
+
+      // Second query: profiles
+      mockSupabase.from().select().in.mockResolvedValueOnce({
+        data: [profile1, profile2],
+        error: null,
+      })
+
+      const result = await getComments('ach-123')
+
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(1, 'comments')
+      expect(mockSupabase.from().eq).toHaveBeenCalledWith('achievement_id', 'ach-123')
+      expect(mockSupabase.from().is).toHaveBeenCalledWith('parent_id', null)
+      expect(mockSupabase.from().order).toHaveBeenCalledWith('created_at', { ascending: true })
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(2, 'profiles')
+      expect(result.data).toHaveLength(2)
+      expect(result.data?.[0].profiles?.full_name).toBe('Test User')
+    })
+
+    it('should return empty array when no comments', async () => {
+      mockSupabase.from().mockResolvedValue({
+        data: [],
+        error: null,
+      })
+
+      const result = await getComments('ach-123')
+
+      expect(result).toEqual({ data: [], error: null })
+      expect(mockSupabase.from).toHaveBeenCalledTimes(1) // No profile query
+    })
+
+    it('should handle missing profiles gracefully', async () => {
+      const comment = mockComment()
+
+      mockSupabase.from().mockResolvedValueOnce({
+        data: [comment],
+        error: null,
+      })
+
+      mockSupabase.from().select().in.mockResolvedValueOnce({
+        data: null,
+        error: null,
+      })
+
+      const result = await getComments('ach-123')
+
+      expect(result.data?.[0].profiles).toBeNull()
+    })
+
+    it('should handle errors', async () => {
+      const error = mockSupabaseError()
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockSupabase.from().mockResolvedValue({
+        data: null,
+        error,
+      })
+
+      const result = await getComments('ach-123')
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error fetching comments:', error)
+      expect(result).toEqual({ data: null, error })
+
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('getCommentReplies', () => {
+    it('should fetch replies with N+1 profile query', async () => {
+      const reply1 = mockComment({ id: 'reply-1', parent_id: 'comment-123', user_id: 'user-1' })
+      const reply2 = mockComment({ id: 'reply-2', parent_id: 'comment-123', user_id: 'user-2' })
+      const profile1 = mockProfile({ id: 'user-1' })
+      const profile2 = mockProfile({ id: 'user-2', full_name: 'User Two' })
+
+      mockSupabase.from().mockResolvedValueOnce({
+        data: [reply1, reply2],
+        error: null,
+      })
+
+      mockSupabase.from().select().in.mockResolvedValueOnce({
+        data: [profile1, profile2],
+        error: null,
+      })
+
+      const result = await getCommentReplies('comment-123')
+
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(1, 'comments')
+      expect(mockSupabase.from().eq).toHaveBeenCalledWith('parent_id', 'comment-123')
+      expect(mockSupabase.from().order).toHaveBeenCalledWith('created_at', { ascending: true })
+      expect(result.data).toHaveLength(2)
+    })
+
+    it('should return empty array when no replies', async () => {
+      mockSupabase.from().mockResolvedValue({
+        data: [],
+        error: null,
+      })
+
+      const result = await getCommentReplies('comment-123')
+
+      expect(result).toEqual({ data: [], error: null })
+    })
+
+    it('should handle errors', async () => {
+      const error = mockSupabaseError()
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockSupabase.from().mockResolvedValue({
+        data: null,
+        error,
+      })
+
+      const result = await getCommentReplies('comment-123')
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error fetching comment replies:', error)
+      expect(result).toEqual({ data: null, error })
+
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('createComment', () => {
+    it('should create top-level comment and fetch profile', async () => {
+      const newComment = {
+        achievement_id: 'ach-123',
+        user_id: 'user-123',
+        content: 'Great achievement!',
+      }
+      const createdComment = mockComment(newComment)
+      const profile = mockProfile()
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      mockSupabase.from().mockResolvedValueOnce({
+        data: createdComment,
+        error: null,
+      })
+
+      mockSupabase.from().select().eq().single.mockResolvedValueOnce({
+        data: profile,
+        error: null,
+      })
+
+      const result = await createComment(newComment as any)
+
+      expect(consoleLogSpy).toHaveBeenCalledWith('Creating comment with data:', {
+        achievement_id: 'ach-123',
+        user_id: 'user-123',
+        content_length: 18,
+        parent_id: undefined,
+      })
+      expect(consoleLogSpy).toHaveBeenCalledWith('Comment created successfully:', 'comment-123')
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(1, 'comments')
+      expect(mockSupabase.from().insert).toHaveBeenCalledWith(newComment)
+      expect(result.data).toHaveProperty('profiles')
+
+      consoleLogSpy.mockRestore()
+    })
+
+    it('should create reply comment with parent_id', async () => {
+      const newReply = {
+        achievement_id: 'ach-123',
+        user_id: 'user-123',
+        content: 'Thanks!',
+        parent_id: 'comment-456',
+      }
+      const createdReply = mockComment(newReply)
+      const profile = mockProfile()
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      mockSupabase.from().mockResolvedValueOnce({
+        data: createdReply,
+        error: null,
+      })
+
+      mockSupabase.from().select().eq().single.mockResolvedValueOnce({
+        data: profile,
+        error: null,
+      })
+
+      const result = await createComment(newReply as any)
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        'Creating comment with data:',
+        expect.objectContaining({ parent_id: 'comment-456' })
+      )
+      expect(result.data).toHaveProperty('parent_id', 'comment-456')
+
+      consoleLogSpy.mockRestore()
+    })
+
+    it('should handle errors with detailed logging', async () => {
+      const error = mockSupabaseError({
+        code: '23503',
+        message: 'Foreign key violation',
+        details: 'Achievement not found',
+        hint: 'Check achievement_id',
+      })
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockSupabase.from().mockResolvedValue({
+        data: null,
+        error,
+      })
+
+      const result = await createComment({
+        achievement_id: 'invalid-id',
+        user_id: 'user-123',
+        content: 'Test',
+      } as any)
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error creating comment:', error)
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error details:', {
+        message: 'Foreign key violation',
+        code: '23503',
+        details: 'Achievement not found',
+        hint: 'Check achievement_id',
+      })
+      expect(result).toEqual({ data: null, error })
+
+      consoleLogSpy.mockRestore()
+      consoleErrorSpy.mockRestore()
+    })
+  })
+
+  describe('updateComment', () => {
+    it('should update comment with authorization', async () => {
+      const updates = { content: 'Updated comment' }
+      const updatedComment = mockComment(updates)
+      const profile = mockProfile()
+
+      mockSupabase.from().mockResolvedValueOnce({
+        data: updatedComment,
+        error: null,
+      })
+
+      mockSupabase.from().select().eq().single.mockResolvedValueOnce({
+        data: profile,
+        error: null,
+      })
+
+      const result = await updateComment('comment-123', 'user-123', updates)
+
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(1, 'comments')
+      expect(mockSupabase.from().update).toHaveBeenCalledWith(updates)
+      expect(mockSupabase.from().eq).toHaveBeenCalledWith('id', 'comment-123')
+      expect(mockSupabase.from().eq).toHaveBeenCalledWith('user_id', 'user-123')
+      expect(result.data).toHaveProperty('profiles')
+    })
+
+    it('should handle authorization failure', async () => {
+      const error = mockSupabaseError({ message: 'No rows updated' })
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockSupabase.from().mockResolvedValue({
+        data: null,
+        error,
+      })
+
+      const result = await updateComment('comment-123', 'different-user', { content: 'Test' })
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error updating comment:', error)
+      expect(result).toEqual({ data: null, error })
+
+      consoleSpy.mockRestore()
+    })
+
+    it('should handle errors', async () => {
+      const error = mockSupabaseError()
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockSupabase.from().mockResolvedValue({
+        data: null,
+        error,
+      })
+
+      const result = await updateComment('comment-123', 'user-123', { content: 'Test' })
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error updating comment:', error)
+      expect(result).toEqual({ data: null, error })
+
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('deleteComment', () => {
+    it('should delete comment with authorization', async () => {
+      mockSupabase.from().mockResolvedValue({
+        error: null,
+      })
+
+      const result = await deleteComment('comment-123', 'user-123')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('comments')
+      expect(mockSupabase.from().delete).toHaveBeenCalled()
+      expect(mockSupabase.from().eq).toHaveBeenCalledWith('id', 'comment-123')
+      expect(mockSupabase.from().eq).toHaveBeenCalledWith('user_id', 'user-123')
+      expect(result).toEqual({ error: null })
+    })
+
+    it('should handle authorization failure (silent success)', async () => {
+      mockSupabase.from().mockResolvedValue({
+        error: null,
+      })
+
+      const result = await deleteComment('comment-123', 'different-user')
+
+      expect(result).toEqual({ error: null })
+    })
+
+    it('should handle errors', async () => {
+      const error = mockSupabaseError()
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockSupabase.from().mockResolvedValue({
+        error,
+      })
+
+      const result = await deleteComment('comment-123', 'user-123')
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error deleting comment:', error)
+      expect(result).toEqual({ error })
+
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('getCommentCount', () => {
+    it('should return count for achievement', async () => {
+      mockSupabase.from().select().eq.mockResolvedValue({
+        count: 10,
+        error: null,
+      })
+
+      const result = await getCommentCount('ach-123')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('comments')
+      expect(mockSupabase.from().select).toHaveBeenCalledWith('*', {
+        count: 'exact',
+        head: true,
+      })
+      expect(mockSupabase.from().eq).toHaveBeenCalledWith('achievement_id', 'ach-123')
+      expect(result).toEqual({ count: 10, error: null })
+    })
+
+    it('should return 0 when no comments', async () => {
+      mockSupabase.from().select().eq.mockResolvedValue({
+        count: 0,
+        error: null,
+      })
+
+      const result = await getCommentCount('ach-123')
+
+      expect(result).toEqual({ count: 0, error: null })
+    })
+
+    it('should return 0 on error', async () => {
+      const error = mockSupabaseError()
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockSupabase.from().select().eq.mockResolvedValue({
+        count: null,
+        error,
+      })
+
+      const result = await getCommentCount('ach-123')
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error getting comment count:', error)
+      expect(result).toEqual({ count: 0, error })
+
+      consoleSpy.mockRestore()
+    })
+  })
+})
